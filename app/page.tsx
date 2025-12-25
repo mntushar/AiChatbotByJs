@@ -9,7 +9,7 @@ export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit, status } = useChat();
 
 
-  const messagesEndRef = useRef(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -24,7 +24,9 @@ export default function Chat() {
       {/* Header */}
       <header className="bg-gradient-to-r from-gray-800 to-gray-700 text-white p-4 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.5)]">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-3xl font-bold text-center bg-gradient-to-r from-cyan-400 via-teal-500 to-blue-500 bg-clip-text text-transparent">Assistant</h1>
+          <h1 className="text-3xl font-bold text-center bg-gradient-to-r from-cyan-400 via-teal-500 to-blue-500 bg-clip-text text-transparent">
+            Ai Chatbot
+          </h1>
         </div>
       </header>
 
@@ -46,8 +48,8 @@ export default function Chat() {
                 </div>
                 <div
                   className={`flex-grow p-3 rounded-lg shadow-md ${m.role === 'user'
-                      ? 'bg-gradient-to-r from-purple-600 to-purple-500 text-white'
-                      : 'bg-gradient-to-r from-gray-700 to-gray-600 text-gray-100'
+                    ? 'bg-gradient-to-r from-purple-600 to-purple-500 text-white'
+                    : 'bg-gradient-to-r from-gray-700 to-gray-600 text-gray-100'
                     }`}
                 >
                   <p className="whitespace-pre-wrap">{m.content}</p>
