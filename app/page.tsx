@@ -25,7 +25,7 @@ export default function Chat() {
       <header className="bg-gradient-to-r from-gray-800 to-gray-700 text-white p-4 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.5)]">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-3xl font-bold text-center bg-gradient-to-r from-cyan-400 via-teal-500 to-blue-500 bg-clip-text text-transparent">
-            Ai Chatbot
+            Ai Agent Chatbot
           </h1>
         </div>
       </header>
