@@ -1,12 +1,29 @@
 'use client';
 
+import { AiChat } from '@/request_handlers/ai_chat';
 import { useChat } from '@ai-sdk/react';
-import { User, Bot, Send } from 'lucide-react';
+import { Bot, Send, User } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 
 export default function Chat() {
+  const requestHandler: AiChat = new AiChat();
 
-  const { messages, input, handleInputChange, handleSubmit, status } = useChat();
+  const { messages, input, handleInputChange, handleSubmit, status } = useChat({
+    api: requestHandler.url,
+
+    experimental_prepareRequestBody({ messages }) {
+      return {
+        messages: messages.map(({ role, content }) => ({ role, content })),
+        deepReserch: false,
+      };
+    },
+
+    experimental_onResponseChunk({ chunk }) {
+      console.log('Chunk received:', chunk);
+      return chunk.messages?.map(m => ({ role: m.role, content: m.content })) || [];
+    }
+
+  });
 
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
