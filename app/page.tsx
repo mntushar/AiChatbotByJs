@@ -1,40 +1,89 @@
 'use client';
 
 import { AiChat } from '@/request_handlers/ai_chat';
-import { useChat } from '@ai-sdk/react';
 import { Bot, Send, User } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+
+type Message = {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+};
 
 export default function Chat() {
   const requestHandler: AiChat = new AiChat();
-
-  const { messages, input, handleInputChange, handleSubmit, status } = useChat({
-    api: requestHandler.url,
-
-    experimental_prepareRequestBody({ messages }) {
-      return {
-        messages: messages.map(({ role, content }) => ({ role, content })),
-        deepReserch: false,
-      };
-    },
-
-    experimental_onResponseChunk({ chunk }) {
-      console.log('Chunk received:', chunk);
-      return chunk.messages?.map(m => ({ role: m.role, content: m.content })) || [];
-    }
-
-  });
-
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || isLoading) return;
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: input,
+    };
+
+    setMessages((prev) => [...prev, userMessage]);
+    setInput('');
+    setIsLoading(true);
+
+    try {
+      const response = await fetch(requestHandler.url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [...messages, userMessage].map(({ role, content }) => ({
+            role,
+            content,
+          })),
+          deepReserch: false,
+        }),
+      });
+
+      const data = await response.json();
+
+      // Extract the assistant's response from the returned messages array
+      const assistantMessage = data.messages[data.messages.length - 1];
+
+      if (assistantMessage && assistantMessage.role === 'assistant') {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: (Date.now() + 1).toString(),
+            role: 'assistant',
+            content: assistantMessage.content,
+          },
+        ]);
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: 'Sorry, there was an error processing your message.',
+        },
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="flex flex-col h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-700">
@@ -54,8 +103,9 @@ export default function Chat() {
             {messages.map((m) => (
               <div key={m.id} className="flex items-start space-x-2">
                 <div
-                  className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${m.role === 'user' ? 'bg-purple-500' : 'bg-green-500'
-                    }`}
+                  className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                    m.role === 'user' ? 'bg-purple-500' : 'bg-green-500'
+                  }`}
                 >
                   {m.role === 'user' ? (
                     <User className="w-5 h-5 text-white" />
@@ -64,15 +114,30 @@ export default function Chat() {
                   )}
                 </div>
                 <div
-                  className={`flex-grow p-3 rounded-lg shadow-md ${m.role === 'user'
-                    ? 'bg-gradient-to-r from-purple-600 to-purple-500 text-white'
-                    : 'bg-gradient-to-r from-gray-700 to-gray-600 text-gray-100'
-                    }`}
+                  className={`flex-grow p-3 rounded-lg shadow-md ${
+                    m.role === 'user'
+                      ? 'bg-gradient-to-r from-purple-600 to-purple-500 text-white'
+                      : 'bg-gradient-to-r from-gray-700 to-gray-600 text-gray-100'
+                  }`}
                 >
                   <p className="whitespace-pre-wrap">{m.content}</p>
                 </div>
               </div>
             ))}
+            {isLoading && (
+              <div className="flex items-start space-x-2">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-green-500">
+                  <Bot className="w-5 h-5 text-white" />
+                </div>
+                <div className="flex-grow p-3 rounded-lg shadow-md bg-gradient-to-r from-gray-700 to-gray-600 text-gray-100">
+                  <div className="flex space-x-2">
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100"></div>
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-200"></div>
+                  </div>
+                </div>
+              </div>
+            )}
             <div ref={messagesEndRef} />
           </div>
 
@@ -84,14 +149,14 @@ export default function Chat() {
                   className="flex-1 p-2 bg-gray-700 text-white border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-inner"
                   value={input}
                   placeholder="Type your message..."
-                  onChange={handleInputChange}
+                  onChange={(e) => setInput(e.target.value)}
                 />
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-md flex items-center justify-center"
-                  disabled={status !== 'ready'}
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-md flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isLoading || !input.trim()}
                 >
-                  {status === 'submitted' || status === 'streaming' ? (
+                  {isLoading ? (
                     <div className="w-5 h-5 border-t-2 border-white rounded-full animate-spin"></div>
                   ) : (
                     <Send className="w-5 h-5" />
