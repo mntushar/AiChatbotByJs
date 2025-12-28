@@ -97,9 +97,9 @@ export default function Chat() {
       </header>
 
       <div className="flex-1 overflow-hidden flex justify-center">
-        <div className="w-full overflow-y-auto flex flex-col">
+        <div className="w-full overflow-y-auto flex flex-col justify-between">
           {/* Chat container */}
-          <div className="flex-1  max-w-4xl p-4 space-y-4 mx-auto">
+          <div className="w-full max-w-4xl p-4 space-y-4 mx-auto flex flex-col flex-grow">
             {messages.map((m) => (
               <div key={m.id} className="flex items-start space-x-2">
                 <div
@@ -114,8 +114,8 @@ export default function Chat() {
                 </div>
                 <div
                   className={`flex-grow p-3 rounded-lg shadow-md ${m.role === 'user'
-                      ? 'bg-zinc-700 text-white'
-                      : 'bg-gradient-to-r from-gray-700 to-gray-600 text-gray-100'
+                    ? 'bg-zinc-700 text-white'
+                    : 'bg-gradient-to-r from-gray-700 to-gray-600 text-gray-100'
                     }`}
                 >
                   <p className="whitespace-pre-wrap">{m.content}</p>
