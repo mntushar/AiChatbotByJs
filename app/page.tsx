@@ -97,15 +97,14 @@ export default function Chat() {
       </header>
 
       <div className="flex-1 overflow-hidden flex justify-center">
-        <div className="w-full max-w-4xl flex flex-col">
+        <div className="w-full overflow-y-auto flex flex-col">
           {/* Chat container */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="flex-1  max-w-4xl p-4 space-y-4 mx-auto">
             {messages.map((m) => (
               <div key={m.id} className="flex items-start space-x-2">
                 <div
-                  className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                    m.role === 'user' ? 'bg-purple-500' : 'bg-green-500'
-                  }`}
+                  className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${m.role === 'user' ? 'bg-zinc-700' : 'bg-gradient-to-r from-gray-700 to-gray-600'
+                    }`}
                 >
                   {m.role === 'user' ? (
                     <User className="w-5 h-5 text-white" />
@@ -114,11 +113,10 @@ export default function Chat() {
                   )}
                 </div>
                 <div
-                  className={`flex-grow p-3 rounded-lg shadow-md ${
-                    m.role === 'user'
-                      ? 'bg-gradient-to-r from-purple-600 to-purple-500 text-white'
+                  className={`flex-grow p-3 rounded-lg shadow-md ${m.role === 'user'
+                      ? 'bg-zinc-700 text-white'
                       : 'bg-gradient-to-r from-gray-700 to-gray-600 text-gray-100'
-                  }`}
+                    }`}
                 >
                   <p className="whitespace-pre-wrap">{m.content}</p>
                 </div>
@@ -126,7 +124,7 @@ export default function Chat() {
             ))}
             {isLoading && (
               <div className="flex items-start space-x-2">
-                <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-green-500">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-gradient-to-r from-gray-700 to-gray-600">
                   <Bot className="w-5 h-5 text-white" />
                 </div>
                 <div className="flex-grow p-3 rounded-lg shadow-md bg-gradient-to-r from-gray-700 to-gray-600 text-gray-100">
@@ -142,7 +140,7 @@ export default function Chat() {
           </div>
 
           {/* Input form */}
-          <div className="p-4 bg-gradient-to-r from-gray-800 to-gray-700 rounded-t-xl shadow-2xl">
+          <div className=" sticky bottom-0 p-4 bg-gradient-to-r from-gray-800 to-gray-700 rounded-t-xl shadow-2xl">
             <form onSubmit={handleSubmit} className="max-w-4xl mx-auto">
               <div className="flex space-x-2">
                 <input
