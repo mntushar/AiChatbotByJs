@@ -15,6 +15,7 @@ export default function Chat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [streamingMessage, setStreamingMessage] = useState('');
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -24,7 +25,7 @@ export default function Chat() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, streamingMessage]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,37 +40,34 @@ export default function Chat() {
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
+    setStreamingMessage('');
 
     try {
-      const response = await fetch(requestHandler.url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const apiMessages = [...messages, userMessage].map(({ role, content }) => ({
+        role,
+        content,
+      }));
+
+      const completeResponse = await requestHandler.sendMessage(
+        apiMessages,
+        (content) => {
+          setStreamingMessage(content);
         },
-        body: JSON.stringify({
-          messages: [...messages, userMessage].map(({ role, content }) => ({
-            role,
-            content,
-          })),
-          deepReserch: false,
-        }),
-      });
+        false
+      );
 
-      const data = await response.json();
-
-      // Extract the assistant's response from the returned messages array
-      const assistantMessage = data.messages[data.messages.length - 1];
-
-      if (assistantMessage && assistantMessage.role === 'assistant') {
+      if (completeResponse) {
         setMessages((prev) => [
           ...prev,
           {
             id: (Date.now() + 1).toString(),
             role: 'assistant',
-            content: assistantMessage.content,
+            content: completeResponse,
           },
         ]);
       }
+
+      setStreamingMessage('');
     } catch (error) {
       console.error('Error sending message:', error);
       setMessages((prev) => [
@@ -80,6 +78,7 @@ export default function Chat() {
           content: 'Sorry, there was an error processing your message.',
         },
       ]);
+      setStreamingMessage('');
     } finally {
       setIsLoading(false);
     }
@@ -103,7 +102,9 @@ export default function Chat() {
             {messages.map((m) => (
               <div key={m.id} className="flex items-start space-x-2">
                 <div
-                  className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${m.role === 'user' ? 'bg-zinc-700' : 'bg-gradient-to-r from-gray-700 to-gray-600'
+                  className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${m.role === 'user'
+                    ? 'bg-zinc-700'
+                    : 'bg-gradient-to-r from-gray-700 to-gray-600'
                     }`}
                 >
                   {m.role === 'user' ? (
@@ -122,7 +123,22 @@ export default function Chat() {
                 </div>
               </div>
             ))}
-            {isLoading && (
+
+            {/* Streaming message */}
+            {streamingMessage && (
+              <div className="flex items-start space-x-2">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-gradient-to-r from-gray-700 to-gray-600">
+                  <Bot className="w-5 h-5 text-white" />
+                </div>
+                <div className="flex-grow p-3 rounded-lg shadow-md bg-gradient-to-r from-gray-700 to-gray-600 text-gray-100">
+                  <p className="whitespace-pre-wrap">{streamingMessage}</p>
+                  <span className="inline-block w-2 h-4 bg-gray-400 ml-1 animate-pulse"></span>
+                </div>
+              </div>
+            )}
+
+            {/* Loading indicator */}
+            {isLoading && !streamingMessage && (
               <div className="flex items-start space-x-2">
                 <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-gradient-to-r from-gray-700 to-gray-600">
                   <Bot className="w-5 h-5 text-white" />
@@ -140,7 +156,7 @@ export default function Chat() {
           </div>
 
           {/* Input form */}
-          <div className=" sticky bottom-0 p-4 bg-gradient-to-r from-gray-800 to-gray-700 rounded-t-xl shadow-2xl">
+          <div className="sticky bottom-0 p-4 bg-gradient-to-r from-gray-800 to-gray-700 rounded-t-xl shadow-2xl">
             <form onSubmit={handleSubmit} className="max-w-4xl mx-auto">
               <div className="flex space-x-2">
                 <input

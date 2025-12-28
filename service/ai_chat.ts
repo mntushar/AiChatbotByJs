@@ -2,7 +2,6 @@ import { AiChatContentViewModelInterface } from "@/repository/view_model/collect
 import { ChatOllama } from "@langchain/ollama";
 import { createAgent } from "langchain";
 
-
 export class AiChatService {
     private langChainAgentModel: ChatOllama;
 
@@ -17,8 +16,6 @@ export class AiChatService {
     async getChatResponse(data: AiChatContentViewModelInterface): Promise<ReadableStream> {
         const agent = createAgent({
             model: this.langChainAgentModel,
-            // tools: [],
-            // systemPrompt: ""
         });
 
         const stream = await agent.stream(
@@ -26,14 +23,26 @@ export class AiChatService {
                 messages: data.messages,
             },
             {
-                streamMode: "updates"  // Streams after each agent step (model → tools → model)
-            });
+                streamMode: "messages"
+            }
+        );
 
-        // for await (const chunk of stream) {
-        //     const [, content] = Object.entries(chunk)[0];
-        //     console.log(content);
-        // }
+        return new ReadableStream({
+            async start(controller) {
+                try {
+                    for await (const [token, metadata] of stream) {
+                        const chunk = {
+                            node: metadata.langgraph_node,
+                            token: token
+                        };
 
-        return stream;
+                        controller.enqueue(chunk);
+                    }
+                    controller.close();
+                } catch (error) {
+                    controller.error(error);
+                }
+            }
+        });
     }
 }
