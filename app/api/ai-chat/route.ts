@@ -9,7 +9,7 @@ export async function POST(request: Request) {
       .apiData(AiChatContentViewModel, request);
 
     const stream = await new AiChatService()
-      .getChatResponse(validData);
+      .getAgentChatResponse(validData);
 
     const transformStream = new TransformStream({
       async transform(chunk: any, controller) {

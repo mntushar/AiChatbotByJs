@@ -1,7 +1,7 @@
 import {
   PGVectorStore
 } from "@langchain/community/vectorstores/pgvector";
-import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
+import { OllamaEmbeddings } from "@langchain/ollama";
 import { PoolConfig } from "pg";
 import { collectionsSchema } from "../models/schema/colections";
 
@@ -18,17 +18,16 @@ const hnswConfig = {
 };
 
 export const hnswPgVectorStore = async () => {
-  // Use Gemini embeddings (768 dimensions by default)
   const hnswPgVectorStore = await PGVectorStore.initialize(
-    new GoogleGenerativeAIEmbeddings({
-      model: "text-embedding-004",  // Recommended model
+    new OllamaEmbeddings({
+      model: "nomic-embed-text",
+      baseUrl: process.env.AI_URL,
     }),
     hnswConfig
   );
 
-  // Create index for Gemini dimensions (not OpenAI's 1536)
   await hnswPgVectorStore.createHnswIndex({
-    dimensions: 768,              // Gemini embedding size
+    dimensions: 768,
     efConstruction: 64,
     m: 16,
   });
