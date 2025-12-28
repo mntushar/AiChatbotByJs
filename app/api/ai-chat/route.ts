@@ -11,24 +11,19 @@ export async function POST(request: Request) {
     const stream = await new AiChatService()
       .getChatResponse(validData);
 
-    const transformStream = new TransformStream<{
-      model_request: {
-        messages: { content: string }[];
-      };
-    }, string>({
-      async transform(
-        chunk: { model_request: { messages: { content: string }[] } },
-        controller
-      ) {
+    const transformStream = new TransformStream({
+      async transform(chunk: any, controller) {
+        const content = chunk.token?.content || "";
+        
         const transformed = {
-          messages: chunk.model_request.messages.map(msg => ({
-            role: "assistant",
-            content: msg.content
-          })),
-          deepReserch: false
+          role: "assistant",
+          content: content,
+          node: chunk.node,
+          deepResearch: false
         };
-
-        controller.enqueue(JSON.stringify(transformed));
+        controller.enqueue(
+          new TextEncoder().encode(`data: ${JSON.stringify(transformed)}\n\n`)
+        );
       }
     });
 
@@ -36,6 +31,7 @@ export async function POST(request: Request) {
       headers: {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
       },
     });
   }
