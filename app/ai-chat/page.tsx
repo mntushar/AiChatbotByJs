@@ -1,6 +1,6 @@
 'use client';
 
-import { AiAgentChat } from '@/request_handlers/ai_agent_chat';
+import { AiChat } from '@/request_handlers/ai_chat';
 import { Bot, Send, User } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
@@ -11,7 +11,7 @@ type Message = {
 };
 
 export default function Chat() {
-  const requestHandler: AiAgentChat = new AiAgentChat();
+  const requestHandler: AiChat = new AiChat();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);

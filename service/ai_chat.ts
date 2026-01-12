@@ -1,9 +1,8 @@
 import { hnswPgVectorStore } from "@/repository/db/db_connection_langchain";
 import { AiChatContentViewModelInterface } from "@/repository/view_model/collections/ai_chat_content_view_model";
 import { DocumentInterface } from "@langchain/core/documents";
-import { IterableReadableStream } from "@langchain/core/utils/stream";
 import { ChatOllama } from "@langchain/ollama";
-import { createAgent, HumanMessage, tool, ToolRuntime } from "langchain";
+import { createAgent, HumanMessage } from "langchain";
 
 export class AiChatService {
     private langChainAgentModel: ChatOllama;
@@ -25,23 +24,88 @@ export class AiChatService {
         return result;
     }
 
-    async getReadableStream(stream: IterableReadableStream<any>): Promise<ReadableStream> {
-        return new ReadableStream({
+    async getReadableStream(
+        stream: AsyncIterable<any>,
+        isDeepReserch: boolean): Promise<ReadableStream<Uint8Array>> {
+        const encoder = new TextEncoder();
+
+        return new ReadableStream<Uint8Array>({
             async start(controller) {
                 try {
-                    for await (const [token, metadata] of stream) {
-                        const chunk = {
-                            node: metadata.langgraph_node,
-                            token: token
+                    for await (const item of stream) {
+                        const token = Array.isArray(item) ? item[0] : item;
+                        const metadata = Array.isArray(item) ? item[1] : undefined;
+
+                        const content =
+                            typeof token === "string"
+                                ? token
+                                : typeof token?.content === "string"
+                                    ? token.content
+                                    : "";
+
+                        const payload = {
+                            role: "assistant",
+                            content,
+                            node: metadata?.langgraph_node ?? null,
+                            deepResearch: isDeepReserch,
                         };
 
-                        controller.enqueue(chunk);
+                        controller.enqueue(
+                            encoder.encode(`data: ${JSON.stringify(payload)}\n\n`)
+                        );
                     }
+
                     controller.close();
                 } catch (error) {
                     controller.error(error);
                 }
-            }
+            },
+        });
+    }
+
+
+    async getReadableStreamForAgent(
+        stream: AsyncIterable<any>,
+        isDeepReserch: boolean): Promise<ReadableStream<Uint8Array>> {
+        const encoder = new TextEncoder();
+
+        return new ReadableStream<Uint8Array>({
+            async start(controller) {
+                try {
+                    for await (const chunk of stream) {
+                        const node =
+                            chunk?.metadata?.langgraph_node ??
+                            chunk?.langgraph_node ??
+                            chunk?.node ??
+                            null;
+
+                        const token =
+                            typeof chunk === "string"
+                                ? chunk
+                                : typeof chunk?.content === "string"
+                                    ? chunk.content
+                                    : typeof chunk?.token?.content === "string"
+                                        ? chunk.token.content
+                                        : typeof chunk?.token === "string"
+                                            ? chunk.token
+                                            : "";
+
+                        const transformed = {
+                            role: "assistant",
+                            content: token,
+                            node,
+                            deepResearch: isDeepReserch,
+                        };
+
+                        controller.enqueue(
+                            encoder.encode(`data: ${JSON.stringify(transformed)}\n\n`)
+                        );
+                    }
+                    controller.close();
+                } catch (err) {
+                    controller.error(err);
+                }
+            },
         });
     }
 
@@ -61,29 +125,8 @@ export class AiChatService {
         // Use HumanMessage for proper chat format
         const stream = await this.langChainAgentModel.stream([new HumanMessage(prompt)]);
 
-        return await this.getReadableStream(stream);
+        return await this.getReadableStreamForAgent(stream, data.deepReserch);
     }
-
-    // async getAgentChatResponse(data: AiChatContentViewModelInterface): Promise<ReadableStream> {
-    //     const messages = data?.messages || [];
-    //     const query = messages[messages.length - 1]?.content || "";
-    //     const contextDocs = await this.getData(query, data.deepReserch);
-
-    //     const context = contextDocs.map(doc => doc.pageContent).join("\n\n");
-
-    //     let prompt: string = "";
-    //     if(contextDocs.length !== 0) {
-    //         prompt = `Context: ${context}\n\nUser: ${query}\n\nAnswer using the context:`;
-    //     }
-    //     else{
-    //         prompt = `User: ${query}`;
-    //     }
-
-
-    //     const stream = await this.langChainAgentModel.stream(prompt);
-
-    //     return await this.getReadableStream(stream);
-    // }
 
     async getChatResponse(data: AiChatContentViewModelInterface): Promise<ReadableStream> {
         const agent = createAgent({
@@ -99,6 +142,6 @@ export class AiChatService {
             }
         );
 
-        return await this.getReadableStream(stream);
+        return await this.getReadableStream(stream, data.deepReserch);
     }
 }

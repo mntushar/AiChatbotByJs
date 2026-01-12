@@ -9,13 +9,13 @@ export async function POST(request: Request) {
       .apiData(AiChatContentViewModel, request);
 
     const stream = await new AiChatService()
-      .getChatResponse(validData);
+      .getAgentChatResponse(validData);
 
     return new Response(stream, {
       headers: {
         "Content-Type": "text/event-stream; charset=utf-8",
         "Cache-Control": "no-cache, no-transform",
-        "Connection": "keep-alive",
+        "X-Accel-Buffering": "no",
       },
     });
   }
