@@ -1,5 +1,6 @@
 import { hnswPgVectorStore } from "@/repository/db/db_connection_langchain";
 import { AiChatContentViewModelInterface } from "@/repository/view_model/collections/ai_chat_content_view_model";
+import { CollectionViewModelInterface } from "@/repository/view_model/collections/collections";
 import { DocumentInterface } from "@langchain/core/documents";
 import { ChatOllama } from "@langchain/ollama";
 import { createAgent, HumanMessage } from "langchain";
@@ -13,6 +14,12 @@ export class AiChatService {
             temperature: process.env.AI_TEMPERATURE ? parseFloat(process.env.AI_TEMPERATURE) : 0.7,
             baseUrl: process.env.AI_URL,
         });
+    }
+
+    async setData(datas: CollectionViewModelInterface[]): Promise<boolean> {
+        const store = await hnswPgVectorStore();
+        await store.addDocuments(datas);
+        return true;
     }
 
     async getData(
